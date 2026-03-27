@@ -1,7 +1,6 @@
--- ============================================================
--- ERP Portal Database Schema (PostgreSQL)
--- ============================================================
+-- #backend>schema.sql
 
+-- ERP Portal Database Schema (PostgreSQL)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Users (central auth table)

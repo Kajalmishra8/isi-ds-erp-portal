@@ -1,4 +1,5 @@
-# frontend/components/sidebar.py
+#frontend>components>sidebar.py
+
 import streamlit as st
 
 ADMIN_PAGES  = {'Dashboard': 'admin_dashboard', 'Students': 'admin_students',

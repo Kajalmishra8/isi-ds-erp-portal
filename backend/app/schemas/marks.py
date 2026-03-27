@@ -1,3 +1,5 @@
+#backend>app>schemas>marks.py
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -13,6 +15,27 @@ class MarksResponse(BaseModel):
     exam_id: str
     sub_id: str
     marks_obtained: Optional[int]
+    semester: Optional[int]
 
     class Config:
         from_attributes = True
+
+
+
+
+
+
+
+
+
+
+# Old MarksResponse
+# class MarksResponse(BaseModel):
+#     mark_id: str
+#     std_id: str
+#     exam_id: str
+#     sub_id: str
+#     marks_obtained: Optional[int]
+
+#     class Config:
+#         from_attributes = True

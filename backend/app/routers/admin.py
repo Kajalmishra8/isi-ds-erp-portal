@@ -1,4 +1,5 @@
-# app/routers/admin.py
+#backend>app>routers>admin.py
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.dependencies import get_db, require_admin
@@ -8,7 +9,6 @@ from app.schemas import subject as sub_schema, marks as m_schema
 from app.models.user import User
 
 router = APIRouter(prefix='/api/admin', tags=['Admin'], dependencies=[Depends(require_admin)])
-
 
 @router.get('/dashboard')
 def dashboard(db: Session = Depends(get_db)):
@@ -26,7 +26,7 @@ def list_students(search: str = '', page: int = 1, limit: int = 10, db: Session 
 def add_exam(payload: e_schema.ExamCreate, db: Session = Depends(get_db)):
     return admin_service.create_exam(db, payload)
 
-@router.get('/exams')
+@router.get('/exams', response_model=list[e_schema.ExamResponse])
 def list_exams(db: Session = Depends(get_db)):
     return admin_service.get_exams(db)
 

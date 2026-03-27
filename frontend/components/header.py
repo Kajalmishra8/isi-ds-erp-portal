@@ -1,4 +1,5 @@
-# frontend/components/header.py
+#frontend>components>header.py
+
 import streamlit as st
 
 def render_header():

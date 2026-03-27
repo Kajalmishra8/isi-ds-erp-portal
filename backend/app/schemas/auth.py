@@ -1,3 +1,5 @@
+#backend>app>schemas>auth.py
+
 from pydantic import BaseModel
 
 class TokenResponse(BaseModel):

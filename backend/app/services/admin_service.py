@@ -1,26 +1,21 @@
-# app/services/admin_service.py
+#backend>app>services>admin_service.py
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from fastapi import HTTPException
-
 from app.models.user import User
 from app.models.student import Student
 from app.models.exam import Exam
 from app.models.subject import Subject
 from app.models.marks import Mark
-
 from app.utils.password import hash_password
-
 from app.schemas.student import StudentCreate
 from app.schemas.exam import ExamCreate
 from app.schemas.subject import SubjectCreate
 from app.schemas.marks import MarksCreate
-
 import uuid
 
-# ---------------- DASHBOARD ----------------
-
+# DASHBOARD
 def get_dashboard_stats(db: Session) -> dict:
     return {
         'total_students': db.query(func.count(Student.std_id)).scalar(),
@@ -28,12 +23,23 @@ def get_dashboard_stats(db: Session) -> dict:
         'total_subjects': db.query(func.count(Subject.sub_id)).scalar(),
     }
 
-# ---------------- STUDENTS ----------------
 
+# STUDENTS
 def create_student(db: Session, payload: StudentCreate):
+
+    # Check enroll_no uniqueness
     if db.query(Student).filter(Student.enroll_no == payload.enroll_no).first():
         raise HTTPException(status_code=400, detail='Enroll number already exists')
 
+    # Check email uniqueness
+    if db.query(Student).filter(Student.email == payload.email).first():
+        raise HTTPException(status_code=400, detail='Email already exists')
+
+    # Check username uniqueness
+    if db.query(User).filter(User.username == payload.username).first():
+        raise HTTPException(status_code=400, detail='Username already exists')
+
+    # Create user
     user = User(
         username=payload.username,
         password=hash_password(payload.password),
@@ -42,11 +48,13 @@ def create_student(db: Session, payload: StudentCreate):
     db.add(user)
     db.flush()
 
+    # Create student
     student = Student(
         enroll_no=payload.enroll_no,
         first_name=payload.first_name,
         last_name=payload.last_name,
         semester=payload.semester,
+        email=payload.email,
         user_id=user.user_id
     )
 
@@ -74,8 +82,8 @@ def get_students(db: Session, search: str, page: int, limit: int):
         'data': data
     }
 
-# ---------------- EXAMS ----------------
 
+# EXAMS
 def create_exam(db: Session, payload: ExamCreate):
     exam = Exam(**payload.model_dump())
     db.add(exam)
@@ -86,8 +94,8 @@ def create_exam(db: Session, payload: ExamCreate):
 def get_exams(db: Session):
     return db.query(Exam).all()
 
-# ---------------- SUBJECTS ----------------
 
+# SUBJECTS
 def create_subject(db: Session, payload: SubjectCreate):
     subject = Subject(**payload.model_dump())
     db.add(subject)
@@ -98,11 +106,11 @@ def create_subject(db: Session, payload: SubjectCreate):
 def get_subjects(db: Session):
     return db.query(Subject).all()
 
-# ---------------- MARKS ----------------
 
+# MARKS
 def create_marks(db: Session, payload: MarksCreate):
 
-    # ✅ Convert string → UUID
+    # Convert string → UUID
     try:
         std_id = uuid.UUID(payload.std_id)
         exam_id = uuid.UUID(payload.exam_id)
@@ -110,7 +118,7 @@ def create_marks(db: Session, payload: MarksCreate):
     except:
         raise HTTPException(status_code=400, detail="Invalid UUID format")
 
-    # ✅ Validate existence
+    # Validate existence
     student = db.query(Student).filter(Student.std_id == std_id).first()
     if not student:
         raise HTTPException(status_code=404, detail='Student not found')
@@ -123,14 +131,31 @@ def create_marks(db: Session, payload: MarksCreate):
     if not subject:
         raise HTTPException(status_code=404, detail='Subject not found')
 
-    # ✅ Business rule
+    # Business rule
     if payload.marks_obtained > subject.max_marks:
         raise HTTPException(
             status_code=400,
             detail=f'Marks exceed max ({subject.max_marks})'
         )
 
-    # ✅ Insert
+    # Negative check
+    if payload.marks_obtained < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Marks cannot be negative"
+        )
+
+    # Duplicate check
+    existing = db.query(Mark).filter(
+        Mark.std_id == std_id,
+        Mark.exam_id == exam_id,
+        Mark.sub_id == sub_id
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Marks already added")
+
+    # Insert
     mark = Mark(
         std_id=std_id,
         exam_id=exam_id,

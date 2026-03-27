@@ -1,4 +1,5 @@
-# frontend/pages/admin_dashboard.py
+#frontend>views>admin_dashboard.py
+
 import streamlit as st
 from utils.api_client import get
 

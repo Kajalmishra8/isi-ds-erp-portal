@@ -1,3 +1,5 @@
+#backend>app>dependencies.py
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -7,7 +9,6 @@ from app.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/auth/login')
 
-
 def get_db():
     db = SessionLocal()
     try:
@@ -15,12 +16,10 @@ def get_db():
     finally:
         db.close()
 
-
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-
     payload = decode_token(token)
 
     if not payload:
@@ -29,9 +28,7 @@ def get_current_user(
             detail="Invalid or expired token"
         )
     
-    #New code
     import uuid
-
     user_id = payload.get("sub")
 
     try:
@@ -40,14 +37,20 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Invalid token format")
     
     print("TOKEN PAYLOAD:", payload)
-    print("USER ID FROM TOKEN:", user_id)
-    print("USER ID FROM TOKEN:", user_id)
+    
+    #------------------------------------------------------------------
+    # Delete this
+    # print("USER ID FROM TOKEN:", user_id)
+    # print("USER ID FROM TOKEN:", user_id)
+    #------------------------------------------------------------------
+    # old playload.get
     # user_id = payload.get("sub")
     # if not user_id:
     #     raise HTTPException(
     #         status_code=status.HTTP_401_UNAUTHORIZED,
     #         detail="Invalid token payload"
     #     )
+    #------------------------------------------------------------------
 
     user = db.query(User).filter(User.user_id == user_id).first()
 
@@ -59,7 +62,6 @@ def get_current_user(
 
     return user
 
-
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.designation != 'admin':
         raise HTTPException(
@@ -67,7 +69,6 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
             detail='Admin access required'
         )
     return current_user
-
 
 def require_student(current_user: User = Depends(get_current_user)) -> User:
     if current_user.designation != 'student':
