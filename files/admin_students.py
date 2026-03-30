@@ -9,62 +9,56 @@ def show():
 
     tab_list, tab_add = st.tabs(["  📋  Student List  ", "  ➕  Add Student  "])
 
-    # ── Tab 1: List ─────────────────────────────────────────────────────────
     with tab_list:
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-
+        st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
         col_search, col_limit, _ = st.columns([3, 1, 2])
         with col_search:
             search = st.text_input(
-                "Search",
-                placeholder="Search by name or enroll no…",
-                label_visibility="collapsed",
+                "search", placeholder="Search by name or enroll no…",
+                label_visibility="collapsed"
             )
         with col_limit:
-            limit = st.selectbox("Per page", [10, 25, 50], label_visibility="collapsed")
+            limit = st.selectbox("limit", [10, 25, 50],
+                                 label_visibility="collapsed")
 
-        data  = get("/api/admin/students", {"search": search, "page": 1, "limit": limit}) or {}
+        data  = get("/api/admin/students",
+                    {"search": search, "page": 1, "limit": limit}) or {}
         rows  = data.get("data", [])
         total = data.get("total", 0)
 
         if rows:
             df = pd.DataFrame(rows)
-            keep = [c for c in
-                    ["enroll_no","first_name","last_name","email","semester","phone"]
+            keep = [c for c in ["enroll_no","first_name","last_name",
+                                 "email","semester","phone"]
                     if c in df.columns]
-            df = df[keep].copy()
-            df.rename(columns={
+            df = df[keep].rename(columns={
                 "enroll_no":"Enroll No","first_name":"First Name",
                 "last_name":"Last Name","email":"Email",
                 "semester":"Sem","phone":"Phone",
-            }, inplace=True)
-
+            })
             st.markdown(
-                f"<p style='font-size:12px;color:#6B7280;margin-bottom:8px;'>"
-                f"Showing <b>{len(rows)}</b> of <b>{total}</b> students</p>",
+                f"<p style='font-size:11px;color:#475569;margin-bottom:8px;'>"
+                f"Showing <b style='color:#64748B;'>{len(rows)}</b> of "
+                f"<b style='color:#64748B;'>{total}</b> students</p>",
                 unsafe_allow_html=True,
             )
             st.table(df)
         else:
-            empty_state(
-                "No students found",
-                "Add your first student using the 'Add Student' tab.",
-                "👥",
-            )
+            empty_state("No students found",
+                        "Add your first student using the 'Add Student' tab.", "👥")
 
-    # ── Tab 2: Add ──────────────────────────────────────────────────────────
     with tab_add:
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
         info_banner("All fields marked with * are required.")
 
         with st.form("student_form"):
             section_label("Account Credentials")
             c1, c2 = st.columns(2)
             with c1:
-                username  = st.text_input("Username *",  placeholder="e.g. john_doe")
+                username   = st.text_input("Username *",  placeholder="e.g. john_doe")
             with c2:
-                password  = st.text_input("Password *",  type="password",
-                                          placeholder="Min 8 characters")
+                password   = st.text_input("Password *",  type="password",
+                                           placeholder="Min 8 characters")
 
             section_label("Personal Information")
             c1, c2 = st.columns(2)
@@ -82,11 +76,13 @@ def show():
             section_label("Academic Details")
             c1, c2 = st.columns(2)
             with c1:
-                enroll_no = st.text_input("Enroll Number *", placeholder="e.g. 2024CS001")
+                enroll_no = st.text_input("Enroll Number *",
+                                          placeholder="e.g. 2024CS001")
             with c2:
-                semester  = st.number_input("Semester *", min_value=1, max_value=12, value=1)
+                semester  = st.number_input("Semester *",
+                                            min_value=1, max_value=12, value=1)
 
-            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:2px;'></div>", unsafe_allow_html=True)
             submitted = st.form_submit_button(
                 "Create Student Account", use_container_width=True
             )
@@ -108,5 +104,4 @@ def show():
                     })
                 if res:
                     st.success(
-                        f"✅ Student **{first_name} {last_name}** created successfully."
-                    )
+                        f"✅ Student **{first_name} {last_name}** created successfully.")

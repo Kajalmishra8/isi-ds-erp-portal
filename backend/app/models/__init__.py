@@ -1,4 +1,3 @@
-from .admin import *
 from .exam import *
 from .marks import *
 from .student import *

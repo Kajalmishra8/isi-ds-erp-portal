@@ -1,17 +1,14 @@
 import streamlit as st
-# import streamlit as st
 
-st.set_page_config(page_title="ERP Portal", layout="wide")
-
-# st.set_page_config(
-#     page_title="ERP Portal",
-#     page_icon="🎓",
-#     layout="wide",
-#     initial_sidebar_state="expanded",
-# )
+st.set_page_config(
+    page_title="ERP Portal",
+    page_icon="🎓",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # Theme must be injected right after set_page_config
-from components.themes import inject_theme
+from components.theme import inject_theme
 inject_theme()
 
 # ── Import views ──────────────────────────────────────────────────────────────
@@ -35,6 +32,7 @@ def _load_page(page_key: str):
     import importlib
     mod = importlib.import_module(module_path)
     getattr(mod, fn_name)()
+
 
 # ── Auth gate ─────────────────────────────────────────────────────────────────
 if "token" not in st.session_state:

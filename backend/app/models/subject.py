@@ -1,6 +1,6 @@
 #backend>app>models>subject.py
 
-# from sqlalchemy import Column, String, SmallInteger
+from sqlalchemy import Column, String, SmallInteger
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 import uuid

@@ -1,79 +1,127 @@
-#frontend>views>admin_marksheet.py
-
 import streamlit as st
 import pandas as pd
 from utils.api_client import get
+from components.ui import page_header, section_label, empty_state
+
 
 def show():
-    st.markdown("## My Marksheet")
+    page_header("My Marksheet", "View your examination results and grades", "📄")
 
-    exams = get('/api/student/exams') or []
-    exam_map = {e['exam_name']: e['exam_id'] for e in exams}
+    # ── Load available exams ───────────────────────────────────────────────────
+    exams = get("/api/student/exams") or []
 
     if not exams:
-        st.warning("No exams available")
+        empty_state(
+            "No exams available",
+            "There are no active exams for your semester right now.",
+            "📋",
+        )
         return
 
-    with st.form('marksheet_form'):
-        exam_name = st.selectbox('Select Exam', list(exam_map.keys()))
-        submitted = st.form_submit_button('View Marksheet', use_container_width=True)
+    # Build label → exam_id map
+    exam_map = {
+        f"{e['exam_name']} ({e.get('year', '')})": e["exam_id"]
+        for e in exams
+    }
+
+    with st.form("marksheet_form"):
+        section_label("Select Examination")
+        selected = st.selectbox("Exam", list(exam_map.keys()))
+        submitted = st.form_submit_button("View Marksheet →", use_container_width=True)
 
     if submitted:
-        with st.spinner("Fetching marksheet..."):
+        enroll_no = st.session_state.get("username", "")
+        with st.spinner("Fetching your marksheet…"):
             data = get(
-                f"/api/student/marksheet?enroll_no={st.session_state.get('username')}&exam_id={exam_map[exam_name]}"
+                f"/api/student/marksheet"
+                f"?enroll_no={enroll_no}&exam_id={exam_map[selected]}"
             )
 
-        if data:
-            st.success(f"Marksheet for {data['student']['name']}")
+        if not data:
+            return
 
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Total", data['summary']['total_obtained'])
-            c2.metric("Max", data['summary']['total_max'])
-            c3.metric("Percentage", f"{data['summary']['percentage']}%")
+        student = data.get("student", {})
+        exam    = data.get("exam",    {})
+        summary = data.get("summary", {})
+        marks   = data.get("marks",   [])
 
-            st.divider()
+        # ── Student info card ──────────────────────────────────────────
+        st.markdown(f"""
+        <div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;
+                    padding:20px 24px;margin-bottom:20px;
+                    box-shadow:0 1px 3px rgba(0,0,0,.06);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-size:18px;font-weight:700;color:#111827;">
+                {student.get('name', '')}</div>
+              <div style="font-size:13px;color:#6B7280;margin-top:3px;">
+                Enroll No: <b>{student.get('enroll_no','')}</b>
+                &nbsp;·&nbsp; Semester: <b>{student.get('semester','')}</b>
+              </div>
+            </div>
+            <div style="text-align:right;font-size:13px;font-weight:500;color:#111827;">
+              {exam.get('name','')} — {exam.get('year','')}
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-            df = pd.DataFrame(data['marks'])
-            st.dataframe(df, use_container_width=True)
+        # ── Summary metrics ────────────────────────────────────────────
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Obtained", summary.get("total_obtained", 0))
+        c2.metric("Maximum Marks",  summary.get("total_max",      0))
+        c3.metric("Percentage",     f"{summary.get('percentage',  0)}%")
+        c4.metric("Grade",          summary.get("grade", "—"))
 
-            st.success(
-                f"Grade: {data['summary']['grade']} | Result: {data['summary']['result']}"
+        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+        # ── Subject-wise table ─────────────────────────────────────────
+        section_label("Subject-wise Marks")
+        if marks:
+            # Backend returns: subject, code, obtained, max
+            df = pd.DataFrame(marks)
+            df.rename(columns={
+                "subject": "Subject",
+                "code":    "Code",
+                "obtained":"Obtained",
+                "max":     "Max Marks",
+            }, inplace=True)
+            if "Obtained" in df.columns and "Max Marks" in df.columns:
+                df["Score %"] = (
+                    (df["Obtained"] / df["Max Marks"]) * 100
+                ).round(1).astype(str) + "%"
+            st.table(df)
+
+        # ── Result banner ──────────────────────────────────────────────
+        result  = summary.get("result", "")
+        grade   = summary.get("grade", "")
+        pct     = summary.get("percentage", 0)
+        is_pass = result == "PASS"
+        color   = "#ECFDF5" if is_pass else "#FEF2F2"
+        fg      = "#059669" if is_pass else "#DC2626"
+        icon    = "✅" if is_pass else "❌"
+
+        st.markdown(f"""
+        <div style="background:{color};border:1px solid {fg}30;border-radius:10px;
+                    padding:16px 24px;margin-top:16px;display:flex;
+                    align-items:center;justify-content:space-between;">
+          <div style="font-size:15px;font-weight:700;color:{fg};">
+            {icon} Result: {result}
+          </div>
+          <div style="font-size:14px;color:{fg};font-weight:500;">
+            Grade: {grade} &nbsp;·&nbsp; {pct}%
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── CSV download ───────────────────────────────────────────────
+        if marks:
+            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+            csv = df.to_csv(index=False).encode()
+            st.download_button(
+                "⬇️  Download Marksheet CSV",
+                csv,
+                file_name=f"marksheet_{enroll_no}.csv",
+                mime="text/csv",
+                use_container_width=True,
             )
-
-
-
-
-
-
-
-
-
-
-# old # frontend/pages/student_marksheet.py
-# import streamlit as st
-# import pandas as pd
-# from utils.api_client import get
-
-# def show():
-#     st.markdown('## My Marksheet')
-#     exams = get('/api/student/exams') or []
-#     exam_map = {e['exam_name']: e['exam_id'] for e in exams}
-#     with st.form('marksheet_form'):
-#         enroll_no = st.text_input('Enroll Number')
-#         exam_name = st.selectbox('Select Exam', list(exam_map.keys()) if exam_map else ['No exams available'])
-#         submitted = st.form_submit_button('View Marksheet', type='primary', use_container_width=True)
-#     if submitted and enroll_no and exam_name in exam_map:
-#         with st.spinner('Fetching marksheet...'):
-#             data = get(f'/api/student/marksheet?enroll_no={enroll_no}&exam_id={exam_map[exam_name]}')
-#         if data:
-#             st.success(f"Marksheet for {data['student']['name']}")
-#             c1, c2, c3 = st.columns(3)
-#             c1.metric('Total Obtained', data['summary']['total_obtained'])
-#             c2.metric('Total Max', data['summary']['total_max'])
-#             c3.metric('Percentage', f"{data['summary']['percentage']}%")
-#             st.divider()
-#             df = pd.DataFrame(data['marks'])
-#             st.dataframe(df, use_container_width=True)
-#             csv = df.to_csv(index=False).encode()
-#             st.download_button('Download CSV', csv, 'marksheet.csv', 'text/csv', use_container_width=True)
