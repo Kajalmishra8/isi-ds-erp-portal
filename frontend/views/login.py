@@ -1,62 +1,32 @@
+#frontend>views>login.py
 import streamlit as st
-from utils.api_client import login as api_login
-
+from utils.api_client import login
 
 def show():
-    # Push content down slightly on the login page
-    st.markdown(
-        "<style>.block-container{padding-top:60px!important;}</style>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("## ERP Portal Login")
 
-    _, center, _ = st.columns([1, 1.4, 1])
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
 
-    with center:
-        # Brand mark — kept as a single inline markdown call (no wrapper div)
-        st.markdown(
-            "<div style='text-align:center;margin-bottom:6px;font-size:38px;'>🎓</div>"
-            "<h2 style='text-align:center;font-size:22px;font-weight:700;"
-            "color:#111827;letter-spacing:-.02em;margin:0;'>ERP Portal</h2>"
-            "<p style='text-align:center;font-size:13px;color:#6B7280;"
-            "margin:6px 0 24px;'>Sign in to your account to continue</p>",
-            unsafe_allow_html=True,
-        )
+        submitted = st.form_submit_button("Login")
 
-        with st.form("login_form", clear_on_submit=False):
-            st.markdown(
-                "<p style='font-size:15px;font-weight:600;color:#111827;"
-                "margin-bottom:4px;'>Welcome back</p>",
-                unsafe_allow_html=True,
-            )
-            username = st.text_input("Username", placeholder="Enter your username")
-            password = st.text_input(
-                "Password", type="password", placeholder="Enter your password"
-            )
-            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button(
-                "Sign In →", use_container_width=True, type="primary"
-            )
+    if submitted:
+        if not username or not password:
+            st.warning("Enter credentials")
+            return
 
-        # Keep auth logic outside the form so error messages render below it
-        if submitted:
-            if not username or not password:
-                st.warning("Please enter both username and password.")
-                return
-            with st.spinner("Authenticating…"):
-                result = api_login(username, password)
-            if result:
-                st.session_state["token"]        = result["access_token"]
-                st.session_state["role"]         = result["role"]
-                st.session_state["username"]     = username
-                st.session_state["current_page"] = (
-                    "admin_dashboard" if result["role"] == "admin" else "student_marksheet"
-                )
-                st.rerun()
+        res = login(username, password)
+
+        if res:
+            st.session_state["token"] = res["access_token"]
+            st.session_state["role"] = res["role"]
+            st.session_state["username"] = username
+
+            # redirect
+            if res["role"] == "admin":
+                st.session_state["current_page"] = "admin_dashboard"
             else:
-                st.error("Invalid credentials. Please try again.")
+                st.session_state["current_page"] = "student_marksheet"
 
-        st.markdown(
-            "<p style='text-align:center;font-size:11px;color:#9CA3AF;"
-            "margin-top:16px;'>Contact your administrator for account access</p>",
-            unsafe_allow_html=True,
-        )
+            st.rerun()

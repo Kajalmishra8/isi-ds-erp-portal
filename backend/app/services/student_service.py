@@ -22,30 +22,19 @@ def get_grade(p: float) -> str:
 
 
 # MARKSHEET
-def get_marksheet(db: Session, enroll_no: str, exam_id: str, current_user: User):
+def get_marksheet(db: Session, exam_id: str, current_user: User):
+# def get_marksheet(db, exam_id, current_user):
+# def get_marksheet(db: Session, enroll_no: str, exam_id: str, current_user: User):
 
     # Student
-    import uuid
-
-    user_id = current_user.get("sub")
-
-    try:
-        user_id = uuid.UUID(user_id)
-    except:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    student = db.query(Student).filter(Student.user_id == user_id).first()
-    # old2 
-    # student = db.query(Student).filter(Student.user_id == user_id).first()
-
-    # if not student:
-    #     raise HTTPException(status_code=404, detail="Student not found")
-
-    marks = db.query(Mark).filter(Mark.std_id == student.std_id).all()
-    # old
     # student = db.query(Student).filter(Student.enroll_no == enroll_no).first()
-    # if not student:
-    #     raise HTTPException(status_code=404, detail="Student not found")
+    student = db.query(Student).filter(
+        Student.user_id == current_user.user_id
+    ).first()
+
+
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
 
     # Security
     if str(student.user_id) != str(current_user.user_id):

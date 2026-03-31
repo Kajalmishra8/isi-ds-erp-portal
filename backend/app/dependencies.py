@@ -38,20 +38,6 @@ def get_current_user(
     
     print("TOKEN PAYLOAD:", payload)
     
-    #------------------------------------------------------------------
-    # Delete this
-    # print("USER ID FROM TOKEN:", user_id)
-    # print("USER ID FROM TOKEN:", user_id)
-    #------------------------------------------------------------------
-    # old playload.get
-    # user_id = payload.get("sub")
-    # if not user_id:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Invalid token payload"
-    #     )
-    #------------------------------------------------------------------
-
     user = db.query(User).filter(User.user_id == user_id).first()
 
     if not user or not user.is_active:

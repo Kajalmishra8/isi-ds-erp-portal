@@ -14,12 +14,11 @@ router = APIRouter(
 
 @router.get('/marksheet')
 def get_marksheet(
-    enroll_no: str = Query(...),
     exam_id: str = Query(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return student_service.get_marksheet(db, enroll_no, exam_id, current_user)
+    return student_service.get_marksheet(db, exam_id, current_user)
 
 @router.get('/exams')
 def available_exams(

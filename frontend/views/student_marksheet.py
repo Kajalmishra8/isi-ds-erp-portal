@@ -1,127 +1,128 @@
+#frontend>views>student_marksheet.py
+
 import streamlit as st
 import pandas as pd
 from utils.api_client import get
-from components.ui import page_header, section_label, empty_state
+
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
+import io
+
+def generate_pdf(data):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    student = data["student"]
+    summary = data["summary"]
+    marks = data["marks"]
+
+    # Title
+    elements.append(Paragraph("<b>STUDENT MARKSHEET</b>", styles['Title']))
+    elements.append(Spacer(1, 12))
+
+    # Name
+    elements.append(Paragraph(f"<b>Name:</b> {student['name']}", styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # TABLE
+    table_data = [["Subject", "Code", "Marks", "Max"]]
+
+    for m in marks:
+        table_data.append([
+            m["subject"],
+            m["code"],
+            m["obtained"],
+            m["max"]
+        ])
+
+    table = Table(table_data, colWidths=[130, 100, 100, 100])
+
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ]))
+
+    elements.append(table)
+    elements.append(Spacer(1, 12))
+
+    # 🔹 SUMMARY IN ONE LINE
+    summary_text = (
+        f"<b>Total:</b> {summary['total_obtained']} / {summary['total_max']} &nbsp;&nbsp;&nbsp;&nbsp;"
+        f"<b>Percentage:</b> {summary['percentage']}% &nbsp;&nbsp;&nbsp;&nbsp;"
+        f"<b>Grade:</b> {summary['grade']} &nbsp;&nbsp;&nbsp;&nbsp;"
+        f"<b>Result:</b> {summary['result']}"
+    )
+
+    elements.append(Paragraph(summary_text, styles['Normal']))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return buffer
 
 
+# MAIN UI
 def show():
-    page_header("My Marksheet", "View your examination results and grades", "📄")
+    st.markdown("## My Marksheet")
 
-    # ── Load available exams ───────────────────────────────────────────────────
-    exams = get("/api/student/exams") or []
+    exams = get('/api/student/exams') or []
+    exam_map = {e['exam_name']: e['exam_id'] for e in exams}
 
     if not exams:
-        empty_state(
-            "No exams available",
-            "There are no active exams for your semester right now.",
-            "📋",
-        )
+        st.warning("No exams available")
         return
 
-    # Build label → exam_id map
-    exam_map = {
-        f"{e['exam_name']} ({e.get('year', '')})": e["exam_id"]
-        for e in exams
-    }
-
-    with st.form("marksheet_form"):
-        section_label("Select Examination")
-        selected = st.selectbox("Exam", list(exam_map.keys()))
-        submitted = st.form_submit_button("View Marksheet →", use_container_width=True)
+    with st.form('marksheet_form'):
+        exam_name = st.selectbox('Select Exam', list(exam_map.keys()))
+        submitted = st.form_submit_button('View Marksheet', use_container_width=True)
 
     if submitted:
-        enroll_no = st.session_state.get("username", "")
-        with st.spinner("Fetching your marksheet…"):
+        with st.spinner("Fetching marksheet..."):
             data = get(
-                f"/api/student/marksheet"
-                f"?enroll_no={enroll_no}&exam_id={exam_map[selected]}"
+                "/api/student/marksheet",
+                params={
+                    "enroll_no": st.session_state.get("username"),
+                    "exam_id": exam_map[exam_name]
+                }
             )
 
-        if not data:
-            return
+        if data:
+            st.success(f"Marksheet for {data['student']['name']}")
 
-        student = data.get("student", {})
-        exam    = data.get("exam",    {})
-        summary = data.get("summary", {})
-        marks   = data.get("marks",   [])
+            summary = data['summary']
 
-        # ── Student info card ──────────────────────────────────────────
-        st.markdown(f"""
-        <div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;
-                    padding:20px 24px;margin-bottom:20px;
-                    box-shadow:0 1px 3px rgba(0,0,0,.06);">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <div>
-              <div style="font-size:18px;font-weight:700;color:#111827;">
-                {student.get('name', '')}</div>
-              <div style="font-size:13px;color:#6B7280;margin-top:3px;">
-                Enroll No: <b>{student.get('enroll_no','')}</b>
-                &nbsp;·&nbsp; Semester: <b>{student.get('semester','')}</b>
-              </div>
-            </div>
-            <div style="text-align:right;font-size:13px;font-weight:500;color:#111827;">
-              {exam.get('name','')} — {exam.get('year','')}
-            </div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
+            # Metrics
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Total", summary['total_obtained'])
+            c2.metric("Max", summary['total_max'])
+            c3.metric("Percentage", f"{summary['percentage']}%")
 
-        # ── Summary metrics ────────────────────────────────────────────
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Total Obtained", summary.get("total_obtained", 0))
-        c2.metric("Maximum Marks",  summary.get("total_max",      0))
-        c3.metric("Percentage",     f"{summary.get('percentage',  0)}%")
-        c4.metric("Grade",          summary.get("grade", "—"))
+            st.progress(summary['percentage'] / 100)
 
-        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+            st.divider()
 
-        # ── Subject-wise table ─────────────────────────────────────────
-        section_label("Subject-wise Marks")
-        if marks:
-            # Backend returns: subject, code, obtained, max
-            df = pd.DataFrame(marks)
-            df.rename(columns={
-                "subject": "Subject",
-                "code":    "Code",
-                "obtained":"Obtained",
-                "max":     "Max Marks",
-            }, inplace=True)
-            if "Obtained" in df.columns and "Max Marks" in df.columns:
-                df["Score %"] = (
-                    (df["Obtained"] / df["Max Marks"]) * 100
-                ).round(1).astype(str) + "%"
-            st.table(df)
+            # Table
+            df = pd.DataFrame(data['marks'])
+            st.dataframe(df, use_container_width=True)
 
-        # ── Result banner ──────────────────────────────────────────────
-        result  = summary.get("result", "")
-        grade   = summary.get("grade", "")
-        pct     = summary.get("percentage", 0)
-        is_pass = result == "PASS"
-        color   = "#ECFDF5" if is_pass else "#FEF2F2"
-        fg      = "#059669" if is_pass else "#DC2626"
-        icon    = "✅" if is_pass else "❌"
-
-        st.markdown(f"""
-        <div style="background:{color};border:1px solid {fg}30;border-radius:10px;
-                    padding:16px 24px;margin-top:16px;display:flex;
-                    align-items:center;justify-content:space-between;">
-          <div style="font-size:15px;font-weight:700;color:{fg};">
-            {icon} Result: {result}
-          </div>
-          <div style="font-size:14px;color:{fg};font-weight:500;">
-            Grade: {grade} &nbsp;·&nbsp; {pct}%
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # ── CSV download ───────────────────────────────────────────────
-        if marks:
-            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-            csv = df.to_csv(index=False).encode()
+            # PDF DOWNLOAD
+            pdf = generate_pdf(data)
             st.download_button(
-                "⬇️  Download Marksheet CSV",
-                csv,
-                file_name=f"marksheet_{enroll_no}.csv",
-                mime="text/csv",
-                use_container_width=True,
+                "⬇️ Download PDF",
+                data=pdf,
+                file_name="marksheet.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+
+            # Final result
+            st.success(
+                f"Grade: {summary['grade']} | Result: {summary['result']}"
             )

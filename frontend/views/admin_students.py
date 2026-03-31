@@ -1,112 +1,40 @@
-import streamlit as st
-import pandas as pd
-from utils.api_client import get, post
-from components.ui import page_header, section_label, empty_state, info_banner
+#frontend>views>admin_students.py
 
+import streamlit as st
+from utils.api_client import get, post
 
 def show():
-    page_header("Students", "Manage student enrolments and profiles", "👥")
+    st.markdown("## Students")
 
-    tab_list, tab_add = st.tabs(["  📋  Student List  ", "  ➕  Add Student  "])
+    st.subheader("Add Student")
 
-    # ── Tab 1: List ─────────────────────────────────────────────────────────
-    with tab_list:
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    with st.form("student_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        enroll_no = st.text_input("Enroll No")
+        first_name = st.text_input("First Name")
+        last_name = st.text_input("Last Name")
+        semester = st.number_input("Semester", min_value=1, max_value=8)
+        email = st.text_input("Email")
 
-        col_search, col_limit, _ = st.columns([3, 1, 2])
-        with col_search:
-            search = st.text_input(
-                "Search",
-                placeholder="Search by name or enroll no…",
-                label_visibility="collapsed",
-            )
-        with col_limit:
-            limit = st.selectbox("Per page", [10, 25, 50], label_visibility="collapsed")
+        submitted = st.form_submit_button("Add Student")
 
-        data  = get("/api/admin/students", {"search": search, "page": 1, "limit": limit}) or {}
-        rows  = data.get("data", [])
-        total = data.get("total", 0)
+    if submitted:
+        res = post("/api/admin/students", {
+            "username": username,
+            "password": password,
+            "enroll_no": enroll_no,
+            "first_name": first_name,
+            "last_name": last_name,
+            "semester": semester,
+            "email": email
+        })
+        if res:
+            st.success("Student added")
 
-        if rows:
-            df = pd.DataFrame(rows)
-            keep = [c for c in
-                    ["enroll_no","first_name","last_name","email","semester","phone"]
-                    if c in df.columns]
-            df = df[keep].copy()
-            df.rename(columns={
-                "enroll_no":"Enroll No","first_name":"First Name",
-                "last_name":"Last Name","email":"Email",
-                "semester":"Sem","phone":"Phone",
-            }, inplace=True)
+    st.divider()
 
-            st.markdown(
-                f"<p style='font-size:12px;color:#6B7280;margin-bottom:8px;'>"
-                f"Showing <b>{len(rows)}</b> of <b>{total}</b> students</p>",
-                unsafe_allow_html=True,
-            )
-            st.table(df)
-        else:
-            empty_state(
-                "No students found",
-                "Add your first student using the 'Add Student' tab.",
-                "👥",
-            )
-
-    # ── Tab 2: Add ──────────────────────────────────────────────────────────
-    with tab_add:
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-        info_banner("All fields marked with * are required.")
-
-        with st.form("student_form"):
-            section_label("Account Credentials")
-            c1, c2 = st.columns(2)
-            with c1:
-                username  = st.text_input("Username *",  placeholder="e.g. john_doe")
-            with c2:
-                password  = st.text_input("Password *",  type="password",
-                                          placeholder="Min 8 characters")
-
-            section_label("Personal Information")
-            c1, c2 = st.columns(2)
-            with c1:
-                first_name = st.text_input("First Name *", placeholder="John")
-            with c2:
-                last_name  = st.text_input("Last Name *",  placeholder="Doe")
-
-            c1, c2 = st.columns(2)
-            with c1:
-                email = st.text_input("Email *", placeholder="john@example.com")
-            with c2:
-                phone = st.text_input("Phone",   placeholder="+91 98765 43210")
-
-            section_label("Academic Details")
-            c1, c2 = st.columns(2)
-            with c1:
-                enroll_no = st.text_input("Enroll Number *", placeholder="e.g. 2024CS001")
-            with c2:
-                semester  = st.number_input("Semester *", min_value=1, max_value=12, value=1)
-
-            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
-            submitted = st.form_submit_button(
-                "Create Student Account", use_container_width=True
-            )
-
-        if submitted:
-            if not all([username, password, first_name, last_name, email, enroll_no]):
-                st.warning("Please fill in all required (*) fields.")
-            else:
-                with st.spinner("Creating student…"):
-                    res = post("/api/admin/students", {
-                        "username":   username,
-                        "password":   password,
-                        "enroll_no":  enroll_no,
-                        "first_name": first_name,
-                        "last_name":  last_name,
-                        "semester":   int(semester),
-                        "email":      email,
-                        "phone":      phone or "",
-                    })
-                if res:
-                    st.success(
-                        f"✅ Student **{first_name} {last_name}** created successfully."
-                    )
+    data = get("/api/admin/students") or {}
+    if data.get("data"):
+        import pandas as pd
+        st.dataframe(pd.DataFrame(data["data"]), use_container_width=True)

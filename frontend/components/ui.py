@@ -1,108 +1,127 @@
-#frontend>sytem>ui.py
-#frontend>component>ui.py
 """
-Reusable UI building blocks (pure HTML via st.markdown).
+Dark-glass UI primitives — all rendered via st.markdown HTML.
 """
 import streamlit as st
 
+# Color accent map
+_ACCENTS = {
+    "blue":   ("#1D4ED8", "#3B82F6", "rgba(59,130,246,.15)",  "#93C5FD"),
+    "purple": ("#5B21B6", "#8B5CF6", "rgba(139,92,246,.15)",  "#C4B5FD"),
+    "teal":   ("#0F766E", "#14B8A6", "rgba(20,184,166,.15)",  "#5EEAD4"),
+    "green":  ("#065F46", "#10B981", "rgba(16,185,129,.15)",  "#6EE7B7"),
+    "red":    ("#991B1B", "#EF4444", "rgba(239,68,68,.15)",   "#FCA5A5"),
+    "yellow": ("#78350F", "#F59E0B", "rgba(245,158,11,.15)",  "#FDE68A"),
+    "gray":   ("#1E293B", "#475569", "rgba(71,85,105,.15)",   "#94A3B8"),
+}
 
-# Page header
+
 def page_header(title: str, subtitle: str = "", icon: str = ""):
-    icon_part = f'<span style="font-size:20px;margin-right:10px;">{icon}</span>' if icon else ""
-    sub_part  = f'<p style="font-size:13px;color:#6B7280;margin-top:4px;">{subtitle}</p>' if subtitle else ""
+    icon_html = (f'<span style="font-size:18px;margin-right:8px;'
+                 f'vertical-align:middle;">{icon}</span>') if icon else ""
+    sub_html  = (f'<p style="font-size:12px;color:#64748B;margin:4px 0 0;'
+                 f'letter-spacing:.01em;">{subtitle}</p>') if subtitle else ""
     st.markdown(f"""
-    <div style="margin-bottom:24px;">
-      <div style="display:flex;align-items:center;gap:4px;">
-        {icon_part}
-        <h1 style="font-size:22px;font-weight:700;color:#111827;
+    <div style="margin-bottom:22px;padding-bottom:16px;
+                border-bottom:1px solid rgba(255,255,255,.07);">
+      <div style="display:flex;align-items:center;">
+        {icon_html}
+        <h1 style="font-size:20px;font-weight:700;color:#F1F5F9;
                    letter-spacing:-.02em;margin:0;line-height:1.3;">{title}</h1>
       </div>
-      {sub_part}
+      {sub_html}
     </div>
     """, unsafe_allow_html=True)
 
 
-# Section label
-def section_label(text: str):
+def stat_card(label: str, value, icon: str = "",
+              color: str = "blue", delta: str = ""):
+    g1, g2, bg, fg = _ACCENTS.get(color, _ACCENTS["blue"])
+    delta_html = (f'<div style="font-size:10px;color:#34D399;font-weight:500;'
+                  f'margin-top:6px;">{delta}</div>') if delta else ""
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:10px;margin:24px 0 14px;">
-      <span style="font-size:12px;font-weight:600;color:#6B7280;
-                   text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;">{text}</span>
-      <div style="flex:1;height:1px;background:#E4E7EC;"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# Stat card
-def stat_card(label: str, value, icon: str = "", color: str = "#3B82F6", delta: str = ""):
-    delta_html = ""
-    if delta:
-        delta_html = f'<span style="font-size:11px;color:#10B981;font-weight:500;">{delta}</span>'
-    st.markdown(f"""
-    <div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;
-                padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-        <span style="font-size:11px;font-weight:600;color:#6B7280;
-                     text-transform:uppercase;letter-spacing:.07em;">{label}</span>
-        <span style="font-size:18px;background:{color}18;border-radius:8px;
-                     padding:4px 7px;line-height:1;">{icon}</span>
+    <div style="background:#0D1424;border:1px solid rgba(255,255,255,.07);
+                border-radius:10px;padding:16px 18px;
+                border-top:2px solid {g2};position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;
+                  background:linear-gradient(90deg,{g1},{g2});"></div>
+      <div style="display:flex;justify-content:space-between;
+                  align-items:flex-start;margin-bottom:10px;">
+        <span style="font-size:10px;font-weight:600;color:#475569;
+                     text-transform:uppercase;letter-spacing:.09em;">{label}</span>
+        <span style="font-size:16px;background:{bg};border-radius:6px;
+                     padding:3px 6px;line-height:1;">{icon}</span>
       </div>
-      <div style="font-size:32px;font-weight:700;color:#111827;
+      <div style="font-size:30px;font-weight:700;color:#F1F5F9;
                   letter-spacing:-.02em;line-height:1;">{value}</div>
       {delta_html}
     </div>
     """, unsafe_allow_html=True)
 
 
-# Badge
-_BADGE_COLORS = {
-    "blue":   ("#EFF6FF", "#2563EB"),
-    "green":  ("#ECFDF5", "#059669"),
-    "red":    ("#FEF2F2", "#DC2626"),
-    "yellow": ("#FFFBEB", "#D97706"),
-    "gray":   ("#F3F4F6", "#4B5563"),
-}
-
-def badge(text: str, color: str = "blue") -> str:
-    bg, fg = _BADGE_COLORS.get(color, _BADGE_COLORS["gray"])
-    return (f'<span style="display:inline-flex;align-items:center;padding:2px 8px;'
-            f'border-radius:20px;font-size:11px;font-weight:600;'
-            f'background:{bg};color:{fg};">{text}</span>')
-
-
-# Empty state
-def empty_state(title: str, message: str, icon: str = "📭"):
+def section_label(text: str):
     st.markdown(f"""
-    <div style="text-align:center;padding:48px 24px;background:#fff;
-                border:1px solid #E4E7EC;border-radius:12px;">
-      <div style="font-size:36px;margin-bottom:12px;">{icon}</div>
-      <div style="font-size:15px;font-weight:600;color:#111827;margin-bottom:6px;">{title}</div>
-      <div style="font-size:13px;color:#6B7280;">{message}</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:20px 0 12px;">
+      <span style="font-size:10px;font-weight:600;color:#475569;
+                   text-transform:uppercase;letter-spacing:.1em;
+                   white-space:nowrap;">{text}</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.06);"></div>
     </div>
     """, unsafe_allow_html=True)
 
 
-# Info banner
 def info_banner(text: str, color: str = "blue"):
-    bg, fg = _BADGE_COLORS.get(color, _BADGE_COLORS["blue"])
+    _, _, bg, fg = _ACCENTS.get(color, _ACCENTS["blue"])
     st.markdown(f"""
-    <div style="background:{bg};border-left:3px solid {fg};border-radius:0 8px 8px 0;
-                padding:10px 16px;font-size:13px;color:{fg};font-weight:500;margin-bottom:16px;">
+    <div style="background:{bg};border-left:3px solid;
+                border-image:linear-gradient(180deg,{_ACCENTS[color][0]},{_ACCENTS[color][1]}) 1;
+                border-radius:0 6px 6px 0;padding:9px 14px;
+                font-size:12px;color:{fg};font-weight:500;margin-bottom:14px;">
       {text}
     </div>
     """, unsafe_allow_html=True)
 
 
-# Divider with label
-def titled_divider(text: str = ""):
-    if text:
-        st.markdown(f"""
-        <div style="display:flex;align-items:center;gap:12px;margin:20px 0;">
-          <div style="flex:1;height:1px;background:#E4E7EC;"></div>
-          <span style="font-size:11px;color:#9CA3AF;font-weight:500;
-                       text-transform:uppercase;letter-spacing:.07em;">{text}</span>
-          <div style="flex:1;height:1px;background:#E4E7EC;"></div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown('<hr style="border-color:#E4E7EC;margin:20px 0;">', unsafe_allow_html=True)
+def empty_state(title: str, message: str, icon: str = "📭"):
+    st.markdown(f"""
+    <div style="text-align:center;padding:40px 24px;
+                background:#0D1424;border:1px solid rgba(255,255,255,.07);
+                border-radius:10px;">
+      <div style="font-size:32px;margin-bottom:10px;">{icon}</div>
+      <div style="font-size:14px;font-weight:600;color:#94A3B8;
+                  margin-bottom:6px;">{title}</div>
+      <div style="font-size:12px;color:#475569;">{message}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def role_badge(role: str) -> str:
+    """Returns inline HTML badge string for a role."""
+    if role == "admin":
+        return ('<span style="font-size:9px;font-weight:600;'
+                'background:rgba(59,130,246,.2);color:#93C5FD;'
+                'padding:2px 7px;border-radius:10px;'
+                'border:1px solid rgba(59,130,246,.3);">ADMIN</span>')
+    return ('<span style="font-size:9px;font-weight:600;'
+            'background:rgba(20,184,166,.2);color:#5EEAD4;'
+            'padding:2px 7px;border-radius:10px;'
+            'border:1px solid rgba(20,184,166,.3);">STUDENT</span>')
+
+
+def result_banner(result: str, grade: str, pct: float):
+    is_pass = result == "PASS"
+    bg   = "rgba(52,211,153,.1)"  if is_pass else "rgba(248,113,113,.1)"
+    fg   = "#34D399"              if is_pass else "#F87171"
+    bdr  = "rgba(52,211,153,.3)"  if is_pass else "rgba(248,113,113,.3)"
+    icon = "✅" if is_pass else "❌"
+    st.markdown(f"""
+    <div style="background:{bg};border:1px solid {bdr};border-radius:8px;
+                padding:14px 20px;margin-top:14px;
+                display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:14px;font-weight:700;color:{fg};">
+        {icon}&nbsp; Result: {result}
+      </div>
+      <div style="font-size:13px;color:{fg};font-weight:500;">
+        Grade: <b>{grade}</b> &nbsp;·&nbsp; {pct}%
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
