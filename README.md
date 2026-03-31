@@ -1,6 +1,6 @@
-# ERP Portal — Academic Management System
+# ERP Portal - Academic Management System
 
-> A full-stack academic ERP built with **FastAPI** + **PostgreSQL** on the backend and **Streamlit** on the frontend. Role-based access, JWT authentication, and a modern dark-glass UI.
+> A full-stack academic ERP built with **FastAPI** + **PostgreSQL** on the backend and **Streamlit** on the frontend. Role-based access, JWT authentication, and a modern dark-themed UI.
 
 ---
 
@@ -24,9 +24,9 @@
 
 ## Overview
 
-The **ERP Portal** is a full-stack application designed to manage student academic records for an institution. It provides a clean separation of roles - administrators manage all data, while students securely access their own results.
+The **ERP Portal** is a full-stack application designed to manage student academic records for an institution. It provides a clean separation of roles administrators manage all data, while students securely access their own results.
 
-The backend exposes a RESTful API with JWT-protected endpoints. The frontend is a dark-glass Streamlit dashboard that consumes the API directly.
+The backend exposes a RESTful API with JWT-protected endpoints. The frontend is a dark-glass Streamlit dashboard that interacts with backend APIs.
 
 ---
 
@@ -47,7 +47,7 @@ The backend exposes a RESTful API with JWT-protected endpoints. The frontend is 
 
 ### Authentication
 - JWT Bearer token login
-- Role-based access control — `admin` and `student`
+- Role-based access control - `admin` and `student`
 - Bcrypt password hashing
 - Token expiry and validation
 
@@ -66,8 +66,9 @@ The backend exposes a RESTful API with JWT-protected endpoints. The frontend is 
 ### System
 - UUID primary keys throughout
 - Unique constraint enforcement (no duplicate marks)
-- Input validation — marks range, required fields
+- Input validation - marks range, required fields
 - Modular layered backend (router → service → model)
+- REST API documentation via Swagger UI (/docs)
 
 ---
 
@@ -325,11 +326,11 @@ All student routes require a valid JWT with `designation = student`.
 
 ### Key Constraints
 
-- `marks (std_id, exam_id, sub_id)` — unique constraint prevents duplicates
-- `students.enroll_no` — unique
-- `students.email` — unique
-- `users.username` — unique
-- `subjects.sub_code` — unique
+- `marks (std_id, exam_id, sub_id)` - unique constraint prevents duplicates
+- `students.enroll_no` - unique
+- `students.email` - unique
+- `users.username` - unique
+- `subjects.sub_code` - unique
 
 ---
 
@@ -375,8 +376,8 @@ Pass threshold: **40%**
 | Challenge                          | Solution                                                                                         |
 |------------------------------------|--------------------------------------------------------------------------------------------------|
 | UUID serialisation in API          | Used `str(uuid)` in token payload; parsed back with `uuid.UUID()` in dependencies                |
-| Streamlit sidebar navigation       | Replaced `st.button` wrappers with native `st.radio()` — the only reliable Streamlit nav pattern |
-| `pyarrow.lib` crash on Windows     | Replaced all `st.dataframe()` calls with `st.table()` — zero pyarrow dependency                  |
+| Streamlit sidebar navigation       | Replaced `st.button` wrappers with native `st.radio()` the only reliable Streamlit nav pattern   |
+| `pyarrow.lib` crash on Windows     | Replaced all `st.dataframe()` calls with `st.table()` zero pyarrow dependency                    |
 | Schema mismatch (missing columns)  | Added `ALTER TABLE` migrations for `semester`, `is_active`, `email` columns                      |
 | JWT role mapping                   | Embedded `role` field directly in token payload; frontend reads it on login response             |
 
@@ -388,7 +389,7 @@ Pass threshold: **40%**
 - [ ] Advanced analytics dashboard (charts, trends)
 - [ ] Bulk marks upload via CSV
 - [ ] Email notifications for result release
-- [ ] Cloud deployment — AWS ECS or Railway
+- [ ] Cloud deployment - AWS ECS or Railway
 - [ ] Unit and integration test suite
 - [ ] Audit log for admin actions
 

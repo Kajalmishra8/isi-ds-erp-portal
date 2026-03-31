@@ -1,5 +1,5 @@
 """
-Dark-glass UI primitives — all rendered via st.markdown HTML.
+Dark-themed UI primitives — all rendered via st.markdown HTML.
 """
 import streamlit as st
 
